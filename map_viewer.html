@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>GeoAnalytics — просмотр карты</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    #map {
+        position: absolute;
+        top: 56px;
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+
+    #toolbar {
+        height: 56px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 0 16px;
+        background: #1f2937;
+        color: #f3f4f6;
+        box-sizing: border-box;
+    }
+
+    #toolbar h1 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    #fileLabel {
+        background: #2563eb;
+        color: white;
+        padding: 8px 14px;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    #fileLabel:hover {
+        background: #1d4ed8;
+    }
+
+    #fileInput {
+        display: none;
+    }
+
+    #status {
+        font-size: 13px;
+        color: #9ca3af;
+    }
+
+    .legend {
+        background: white;
+        padding: 10px 12px;
+        border-radius: 6px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    .legend div {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .legend span {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        display: inline-block;
+        border: 1px solid rgba(0,0,0,0.2);
+    }
+
+    .empty-state {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        color: #6b7280;
+        font-size: 14px;
+        pointer-events: none;
+    }
+
+    .leaflet-popup-content table td {
+        padding: 1px 6px 1px 0;
+        font-size: 12px;
+        vertical-align: top;
+    }
+
+    .leaflet-popup-content table td.label {
+        color: #6b7280;
+    }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+    <h1>GeoAnalytics — карта гексагонов</h1>
+    <label id="fileLabel" for="fileInput">Загрузить hex_features.geojson</label>
+    <input type="file" id="fileInput" accept=".geojson,.json,application/geo+json,application/json" />
+    <span id="status">Файл не загружен</span>
+</div>
+
+<div id="map"></div>
+<div class="empty-state" id="emptyState">Загрузите файл data/processed/hex_features.geojson<br>кнопкой выше, чтобы увидеть карту</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+    const map = L.map('map', { zoomControl: true }).setView([20, 0], 2);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let geoLayer = null;
+
+    const categoryColors = {
+        LOW: '#ff0000',
+        MEDIUM: '#ffff00',
+        HIGH: '#90ee90',
+        VERY_HIGH: '#00aa00'
+    };
+
+    function defaultStyle(feature) {
+        const p = feature.properties || {};
+
+        if (p.style && p.style.fill) {
+            return {
+                fillColor: p.style.fill,
+                fillOpacity: p.style['fill-opacity'] ?? 0.6,
+                color: p.style.stroke || '#333333',
+                weight: p.style['stroke-width'] ?? 1
+            };
+        }
+
+        return {
+            fillColor: categoryColors[p.category] || '#999999',
+            fillOpacity: 0.6,
+            color: '#333333',
+            weight: 1
+        };
+    }
+
+    function popupHtml(p) {
+        const rows = [
+            ['hex_id', p.hex_id],
+            ['rank', p.rank],
+            ['category', p.category],
+            ['points_count', p.points_count],
+            ['neighbors_count', p.neighbors_count],
+            ['neighbor_points_count', p.neighbor_points_count],
+            ['density', typeof p.density === 'number' ? p.density.toFixed(3) : p.density],
+            ['score', typeof p.score === 'number' ? p.score.toFixed(2) : p.score],
+            ['confidence', typeof p.confidence === 'number' ? p.confidence.toFixed(2) : p.confidence]
+        ];
+
+        const body = rows
+            .filter(([, v]) => v !== undefined && v !== null)
+            .map(([k, v]) => `<tr><td class="label">${k}</td><td>${v}</td></tr>`)
+            .join('');
+
+        return `<table>${body}</table>`;
+    }
+
+    function loadGeoJson(data) {
+        if (geoLayer) {
+            map.removeLayer(geoLayer);
+        }
+
+        geoLayer = L.geoJSON(data, {
+            style: defaultStyle,
+            onEachFeature: (feature, layer) => {
+                layer.bindPopup(popupHtml(feature.properties || {}));
+
+                layer.on('mouseover', () => layer.setStyle({ weight: 3 }));
+                layer.on('mouseout', () => layer.setStyle({ weight: (feature.properties?.style?.['stroke-width']) ?? 1 }));
+            }
+        }).addTo(map);
+
+        const bounds = geoLayer.getBounds();
+
+        if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [20, 20] });
+        }
+
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('status').textContent =
+            `Загружено гексагонов: ${data.features ? data.features.length : 0}`;
+    }
+
+    document.getElementById('fileInput').addEventListener('change', (event) => {
+        const file = event.target.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                loadGeoJson(data);
+            } catch (err) {
+                document.getElementById('status').textContent = 'Ошибка чтения файла: ' + err.message;
+            }
+        };
+
+        reader.readAsText(file);
+    });
+
+    const legend = L.control({ position: 'bottomright' });
+
+    legend.onAdd = () => {
+        const div = L.DomUtil.create('div', 'legend');
+
+        div.innerHTML =
+            '<div><span style="background:#ff0000"></span>LOW</div>' +
+            '<div><span style="background:#ffff00"></span>MEDIUM</div>' +
+            '<div><span style="background:#90ee90"></span>HIGH</div>' +
+            '<div><span style="background:#00aa00"></span>VERY_HIGH</div>';
+
+        return div;
+    };
+
+    legend.addTo(map);
+
+    fetch('data/processed/hex_features.geojson')
+        .then(res => {
+            if (!res.ok) {
+                throw new Error('not found');
+            }
+            return res.json();
+        })
+        .then(data => loadGeoJson(data))
+        .catch(() => {
+            // Не критично: при открытии файла напрямую (file://) браузер
+            // блокирует такой запрос, тогда просто используем кнопку загрузки.
+        });
+</script>
+
+</body>
+</html>

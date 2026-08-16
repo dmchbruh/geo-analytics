@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>GeoAnalytics — анализ локаций</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        background: #111827;
+    }
+
+    #topbar {
+        height: 64px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 16px;
+        background: #1f2937;
+        color: #f3f4f6;
+        box-sizing: border-box;
+        position: relative;
+        z-index: 1000;
+    }
+
+    #topbar h1 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0;
+        white-space: nowrap;
+        margin-right: 8px;
+    }
+
+    .field-wrap {
+        position: relative;
+    }
+
+    #cityInput {
+        width: 220px;
+        padding: 9px 12px;
+        border-radius: 6px;
+        border: 1px solid #374151;
+        background: #111827;
+        color: #f3f4f6;
+        font-size: 13px;
+        outline: none;
+    }
+
+    #cityInput:focus {
+        border-color: #2563eb;
+    }
+
+    #suggestions {
+        position: absolute;
+        top: 40px;
+        left: 0;
+        width: 260px;
+        background: #1f2937;
+        border: 1px solid #374151;
+        border-radius: 6px;
+        max-height: 220px;
+        overflow-y: auto;
+        display: none;
+    }
+
+    #suggestions div {
+        padding: 8px 12px;
+        font-size: 13px;
+        color: #e5e7eb;
+        cursor: pointer;
+    }
+
+    #suggestions div:hover {
+        background: #2563eb;
+    }
+
+    #businessSelect {
+        padding: 9px 12px;
+        border-radius: 6px;
+        border: 1px solid #374151;
+        background: #111827;
+        color: #f3f4f6;
+        font-size: 13px;
+    }
+
+    #analyzeBtn {
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    #analyzeBtn:hover {
+        background: #1d4ed8;
+    }
+
+    #analyzeBtn:disabled {
+        background: #4b5563;
+        cursor: not-allowed;
+    }
+
+    .toggle-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #e5e7eb;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    #statusText {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-left: auto;
+        max-width: 320px;
+        text-align: right;
+    }
+
+    #statusText.error {
+        color: #f87171;
+    }
+
+    #mapWrap {
+        position: absolute;
+        top: 64px;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+    }
+
+    #map {
+        flex: 1;
+        height: 100%;
+    }
+
+    #sidebar {
+        width: 300px;
+        background: #1f2937;
+        color: #e5e7eb;
+        padding: 16px;
+        overflow-y: auto;
+        box-sizing: border-box;
+        display: none;
+        font-size: 13px;
+    }
+
+    #sidebar h2 {
+        font-size: 14px;
+        margin: 0 0 10px 0;
+    }
+
+    #sidebar .stat-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        border-bottom: 1px solid #374151;
+    }
+
+    #sidebar .category-row span:first-child {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    #sidebar .top-zone {
+        padding: 6px 0;
+        border-bottom: 1px solid #374151;
+        font-size: 12px;
+    }
+
+    .empty-state {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        color: #6b7280;
+        font-size: 14px;
+        pointer-events: none;
+    }
+
+    .leaflet-popup-content-wrapper {
+        background: #1f2937;
+        color: #e5e7eb;
+    }
+
+    .leaflet-popup-tip {
+        background: #1f2937;
+    }
+
+    .popup-title {
+        font-weight: 600;
+        margin-bottom: 6px;
+        font-size: 13px;
+    }
+
+    .popup-section {
+        margin-top: 6px;
+        font-size: 12px;
+    }
+
+    .popup-section b {
+        display: block;
+        margin-bottom: 2px;
+    }
+
+    .popup-pro {
+        color: #86efac;
+    }
+
+    .popup-con {
+        color: #fca5a5;
+    }
+</style>
+</head>
+<body>
+
+    <div id="topbar">
+        <h1>GeoAnalytics</h1>
+
+        <div class="field-wrap">
+            <input type="text" id="cityInput" placeholder="City (e.g. Tbilisi)" autocomplete="off" />
+            <div id="suggestions"></div>
+        </div>
+
+        <select id="businessSelect">
+            <option value="coffee_shop">Кофейня</option>
+            <option value="barbershop">Барбершоп</option>
+        </select>
+
+        <label class="toggle-label">
+            Спрос
+            <input type="range" id="balanceSlider" min="0" max="100" value="30" style="width:100px" />
+            Конкуренты
+        </label>
+
+        <select id="sourceSelect">
+            <option value="live">OpenStreetMap (онлайн)</option>
+        </select>
+
+        <button id="analyzeBtn">Анализировать</button>
+
+        <label class="toggle-label">
+            <input type="checkbox" id="hideLowToggle" /> Скрыть низкий потенциал
+        </label>
+
+        <span id="statusText">Введите город и нажмите "Анализировать"</span>
+    </div>
+
+<div id="mapWrap">
+    <div id="map"></div>
+    <div id="sidebar"></div>
+</div>
+<div class="empty-state" id="emptyState">Результат появится здесь</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+    const SERVER_URL = '';
+
+    const map = L.map('map', { zoomControl: true }).setView([20, 0], 2);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let geoLayer = null;
+    let lastGeoJson = null;
+
+    const categoryColors = {
+        LOW: '#ff0000',
+        MEDIUM: '#ffff00',
+        HIGH: '#90ee90',
+        VERY_HIGH: '#00aa00'
+    };
+
+    const categoryLabels = {
+        LOW: 'Низкий потенциал',
+        MEDIUM: 'Средний потенциал',
+        HIGH: 'Хороший потенциал',
+        VERY_HIGH: 'Отличный потенциал'
+    };
+
+    function setStatus(text, isError) {
+        const el = document.getElementById('statusText');
+        el.textContent = text;
+        el.className = isError ? 'error' : '';
+    }
+
+    function styleForFeature(feature) {
+        const p = feature.properties || {};
+
+        if (p.style && p.style.fill) {
+            return {
+                fillColor: p.style.fill,
+                fillOpacity: p.style['fill-opacity'] ?? 0.6,
+                color: p.style.stroke || '#333333',
+                weight: p.style['stroke-width'] ?? 1
+            };
+        }
+
+        return {
+            fillColor: categoryColors[p.category] || '#999999',
+            fillOpacity: 0.6,
+            color: '#333333',
+            weight: 1
+        };
+    }
+
+    function buildProsCons(p) {
+        const pros = [];
+        const cons = [];
+
+        if (p.points_count === 0) {
+            pros.push('Нет прямых конкурентов рядом');
+        } else if (p.points_count <= 2) {
+            pros.push('Мало конкурентов рядом (' + p.points_count + ')');
+        } else if (p.points_count >= 8) {
+            cons.push('Высокая конкуренция (' + p.points_count + ' рядом)');
+        }
+
+        if (p.demand_count >= 50) {
+            pros.push('Высокий потенциальный спрос');
+        } else if (p.demand_count <= 5) {
+            cons.push('Низкий потенциальный спрос в этой зоне');
+        }
+
+        if (p.growth_count > 0) {
+            pros.push('🚧 Рядом строится новый район — растущий спрос');
+        }
+
+        if (pros.length === 0) pros.push('—');
+        if (cons.length === 0) cons.push('—');
+
+        return { pros, cons };
+    }
+
+    function popupHtml(p) {
+        const { pros, cons } = buildProsCons(p);
+
+        const prosHtml = pros.map(x => '<div class="popup-pro">+ ' + x + '</div>').join('');
+        const consHtml = cons.map(x => '<div class="popup-con">- ' + x + '</div>').join('');
+
+       return `
+            <div class="popup-title">${categoryLabels[p.category] || p.category} · балл ${Number(p.score).toFixed(1)}</div>
+            <div>Конкурентов рядом: ${p.points_count}</div>
+            <div>Индикатор спроса: ${p.demand_count}</div>
+            <div>Инвестиционный потенциал: ${Number(p.investment_score).toFixed(0)}${p.growth_count > 0 ? ' 🚧' : ''}</div>
+            <div class="popup-section"><b>Плюсы</b>${prosHtml}</div>
+            <div class="popup-section"><b>Минусы</b>${consHtml}</div>
+        `;
+    }
+
+    function renderGeoJson(geojson) {
+        if (geoLayer) {
+            map.removeLayer(geoLayer);
+        }
+
+        geoLayer = L.geoJSON(geojson, {
+            style: styleForFeature,
+            onEachFeature: (feature, layer) => {
+                layer.bindPopup(popupHtml(feature.properties || {}));
+                layer.on('mouseover', () => layer.setStyle({ weight: 3 }));
+                layer.on('mouseout', () => layer.setStyle({ weight: 1 }));
+            }
+        }).addTo(map);
+
+        const bounds = geoLayer.getBounds();
+
+        if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [20, 20] });
+        }
+
+        document.getElementById('emptyState').style.display = 'none';
+    }
+
+    function applyFilterAndRender() {
+        if (!lastGeoJson) {
+            return;
+        }
+
+        const hideLow = document.getElementById('hideLowToggle').checked;
+
+        const filtered = {
+            type: 'FeatureCollection',
+            features: hideLow
+                ? lastGeoJson.features.filter(f => f.properties.category !== 'LOW')
+                : lastGeoJson.features
+        };
+
+        renderGeoJson(filtered);
+    }
+
+    function renderSidebar(summary, competitorCount, demandCount, growthCount) {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.style.display = 'block';
+
+        const dist = summary.category_distribution || {};
+
+        let categoryRows = '';
+        for (const key of ['VERY_HIGH', 'HIGH', 'MEDIUM', 'LOW']) {
+            const count = dist[key] || 0;
+            categoryRows += `
+                <div class="stat-row category-row">
+                    <span><span class="dot" style="background:${categoryColors[key]}"></span>${categoryLabels[key]}</span>
+                    <span>${count}</span>
+                </div>
+            `;
+        }
+
+        let topZonesHtml = '';
+        (summary.top_zones || []).forEach(zone => {
+            topZonesHtml += `
+                <div class="top-zone">
+                    #${zone.rank} · ${zone.hex_id} · балл ${Number(zone.score).toFixed(1)} · ${categoryLabels[zone.category] || zone.category}
+                </div>
+            `;
+        });
+
+        sidebar.innerHTML = `
+            <h2>Сводка</h2>
+            <div class="stat-row"><span>Всего гексов</span><span>${summary.hex_count}</span></div>
+            <div class="stat-row"><span>Найдено конкурентов</span><span>${competitorCount}</span></div>
+            <div class="stat-row"><span>Точек спроса</span><span>${demandCount}</span></div>
+            <div class="stat-row"><span>Точек застройки</span><span>${growthCount}</span></div>
+            <h2 style="margin-top:16px">По категориям</h2>
+            ${categoryRows}
+            <h2 style="margin-top:16px">Топ зон</h2>
+            ${topZonesHtml}
+        `;
+    }
+
+    async function runAnalysis() {
+        const city = document.getElementById('cityInput').value.trim();
+        const business = document.getElementById('businessSelect').value;
+        const btn = document.getElementById('analyzeBtn');
+
+        if (!city) {
+            setStatus('Введите название города', true);
+            return;
+        }
+
+        btn.disabled = true;
+        setStatus('Анализируем, это может занять до минуты...', false);
+
+        try {
+        const source = document.getElementById('sourceSelect').value;
+        const balance = document.getElementById('balanceSlider').value;
+        const competitorWeight = balance / 100;
+        const demandWeight = 1 - competitorWeight;
+
+        const url = SERVER_URL
+            + '/analyze?city=' + encodeURIComponent(city)
+            + '&business=' + encodeURIComponent(business)
+            + '&source=' + encodeURIComponent(source)
+            + '&demand_weight=' + demandWeight
+            + '&competitor_weight=' + competitorWeight;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.error) {
+                setStatus('Ошибка: ' + data.error, true);
+                btn.disabled = false;
+                return;
+            }
+
+            lastGeoJson = data.geojson;
+            applyFilterAndRender();
+            renderSidebar(data.summary, data.competitor_count, data.demand_count, data.growth_count);
+
+            const failedParts = [];
+            if (data.competitor_fetch_failed) failedParts.push('конкуренты');
+            if (data.demand_fetch_failed) failedParts.push('спрос');
+            if (data.growth_fetch_failed) failedParts.push('застройка');
+
+            if (failedParts.length > 0) {
+                setStatus('Внимание: не удалось загрузить (' + failedParts.join(', ') + '). Попробуйте через 20-30 сек.', true);
+            } else {
+                setStatus('Готово: ' + data.summary.hex_count + ' гексов проанализировано', false);
+            }
+        } catch (err) {
+            setStatus('Не удалось связаться с сервером. Запущен ли GeoAnalyticsServer.exe?', true);
+        }
+
+        btn.disabled = false;
+    }
+
+    document.getElementById('analyzeBtn').addEventListener('click', runAnalysis);
+    document.getElementById('hideLowToggle').addEventListener('change', applyFilterAndRender);
+
+    document.getElementById('cityInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('suggestions').style.display = 'none';
+            runAnalysis();
+        }
+    });
+
+    let debounceTimer = null;
+
+    document.getElementById('cityInput').addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+
+        const query = e.target.value.trim();
+        const suggestionsBox = document.getElementById('suggestions');
+
+        if (query.length < 3) {
+            suggestionsBox.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(async () => {
+            try {
+                const url = 'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query) + '&format=json&limit=5&accept-language=en';
+                const response = await fetch(url);
+                const results = await response.json();
+
+                if (!results.length) {
+                    suggestionsBox.style.display = 'none';
+                    return;
+                }
+
+                suggestionsBox.innerHTML = '';
+
+                results.forEach(place => {
+                    const item = document.createElement('div');
+                    item.textContent = place.display_name;
+                    item.addEventListener('click', () => {
+                        document.getElementById('cityInput').value = place.display_name.split(',')[0];
+                        suggestionsBox.style.display = 'none';
+                    });
+                    suggestionsBox.appendChild(item);
+                });
+
+                suggestionsBox.style.display = 'block';
+            } catch (err) {
+                suggestionsBox.style.display = 'none';
+            }
+        }, 400);
+    });
+
+    (async () => {
+        try {
+            const response = await fetch(SERVER_URL + '/pbf-sources');
+            const sources = await response.json();
+            const select = document.getElementById('sourceSelect');
+
+            sources.forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ' (офлайн)';
+                select.appendChild(opt);
+            });
+        } catch (err) {
+        }
+    })();
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.field-wrap')) {
+            document.getElementById('suggestions').style.display = 'none';
+        }
+    });
+</script>
+
+</body>
+</html>

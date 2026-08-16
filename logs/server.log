@@ -1,0 +1,36 @@
+[2026-08-17 01:37:18.545] [geoanalytics] [info] Logging to E:\geo_analytics\project\logs\server.log
+[2026-08-17 01:37:18.545] [geoanalytics] [info] GeoAnalytics server starting (cwd: E:\geo_analytics\project\out\build\default)
+[2026-08-17 01:37:18.547] [geoanalytics] [info] GeoAnalytics API server listening on http://127.0.0.1:8080
+[2026-08-17 01:37:31.213] [geoanalytics] [info] Analyzing 'Tbilisi' for business 'coffee_shop' at resolution 9
+[2026-08-17 01:37:31.723] [geoanalytics] [info] Running: osmium extract -b "44.596202,41.617790,45.017291,41.843878" -s smart --overwrite -o "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_0_extract.osm.pbf" "E:\geo_analytics\project\data\pbf\georgia-latest.osm.pbf"
+[2026-08-17 01:37:34.075] [geoanalytics] [info] osmium extract finished with code 0
+[2026-08-17 01:37:34.075] [geoanalytics] [info] Running: osmium tags-filter --overwrite -o "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_0_filtered.osm.pbf" "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_0_extract.osm.pbf" amenity=cafe
+[2026-08-17 01:37:34.459] [geoanalytics] [info] osmium tags-filter finished with code 0
+[2026-08-17 01:37:34.459] [geoanalytics] [info] Running: osmium export --geometry-type=point -f geojson --overwrite -o "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_0_export.geojson" "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_0_filtered.osm.pbf"
+[2026-08-17 01:37:34.504] [geoanalytics] [info] osmium export finished with code 0
+[2026-08-17 01:37:34.521] [geoanalytics] [info] Parsing osmium export output (278837 bytes)
+[2026-08-17 01:37:34.632] [geoanalytics] [info] Fetched 899 points from local PBF (E:\geo_analytics\project\data\pbf\georgia-latest.osm.pbf)
+[2026-08-17 01:37:34.634] [geoanalytics] [info] Running: osmium extract -b "44.596202,41.617790,45.017291,41.843878" -s smart --overwrite -o "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_1_extract.osm.pbf" "E:\geo_analytics\project\data\pbf\georgia-latest.osm.pbf"
+[2026-08-17 01:37:36.814] [geoanalytics] [info] osmium extract finished with code 0
+[2026-08-17 01:37:36.815] [geoanalytics] [info] Running: osmium tags-filter --overwrite -o "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_1_filtered.osm.pbf" "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_1_extract.osm.pbf" office building=residential building=apartments highway=bus_stop
+[2026-08-17 01:37:37.602] [geoanalytics] [info] osmium tags-filter finished with code 0
+[2026-08-17 01:37:37.603] [geoanalytics] [info] Running: osmium export --geometry-type=point -f geojson --overwrite -o "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_1_export.geojson" "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_1_filtered.osm.pbf"
+[2026-08-17 01:37:37.694] [geoanalytics] [info] osmium export finished with code 0
+[2026-08-17 01:37:37.777] [geoanalytics] [info] Parsing osmium export output (2597909 bytes)
+[2026-08-17 01:37:38.662] [geoanalytics] [info] Fetched 7326 points from local PBF (E:\geo_analytics\project\data\pbf\georgia-latest.osm.pbf)
+[2026-08-17 01:37:38.665] [geoanalytics] [info] Running: osmium extract -b "44.596202,41.617790,45.017291,41.843878" -s smart --overwrite -o "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_2_extract.osm.pbf" "E:\geo_analytics\project\data\pbf\georgia-latest.osm.pbf"
+[2026-08-17 01:37:40.826] [geoanalytics] [info] osmium extract finished with code 0
+[2026-08-17 01:37:40.827] [geoanalytics] [info] Running: osmium tags-filter --overwrite -o "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_2_filtered.osm.pbf" "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_2_extract.osm.pbf" landuse=construction building=construction
+[2026-08-17 01:37:41.519] [geoanalytics] [info] osmium tags-filter finished with code 0
+[2026-08-17 01:37:41.520] [geoanalytics] [info] Running: osmium export --geometry-type=point -f geojson --overwrite -o "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_2_export.geojson" "C:\Users\zedar\AppData\Local\Temp\geoanalytics_pbf_2_filtered.osm.pbf"
+[2026-08-17 01:37:41.575] [geoanalytics] [info] osmium export finished with code 0
+[2026-08-17 01:37:41.581] [geoanalytics] [info] Parsing osmium export output (10487 bytes)
+[2026-08-17 01:37:41.589] [geoanalytics] [info] Fetched 72 points from local PBF (E:\geo_analytics\project\data\pbf\georgia-latest.osm.pbf)
+[2026-08-17 01:37:41.594] [geoanalytics] [info] Converting to H3: 899 competitor, 7326 demand, 72 growth points
+[2026-08-17 01:37:41.630] [geoanalytics] [info] Aggregating hexes
+[2026-08-17 01:37:41.631] [geoanalytics] [info] Hex counts: 297 competitor, 1233 demand, 56 growth
+[2026-08-17 01:37:41.636] [geoanalytics] [info] Built 1285 features, calculating scores
+[2026-08-17 01:37:41.638] [geoanalytics] [info] Scores calculated, building GeoJSON
+[2026-08-17 01:37:41.881] [geoanalytics] [info] GeoJSON built, building summary
+[2026-08-17 01:37:41.883] [geoanalytics] [info] Summary built, assembling response
+[2026-08-17 01:37:41.930] [geoanalytics] [info] /analyze response size: 825145 bytes

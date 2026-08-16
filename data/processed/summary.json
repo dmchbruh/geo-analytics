@@ -1,0 +1,86 @@
+{
+    "averages": {
+        "confidence": 0.08108527131782994,
+        "density": 0.0,
+        "points_count": 0.6434108527131783,
+        "score": 4.837360140677197
+    },
+    "category_distribution": {
+        "HIGH": 2,
+        "LOW": 1374,
+        "MEDIUM": 43
+    },
+    "hex_count": 1419,
+    "top_zones": [
+        {
+            "category": "HIGH",
+            "hex_id": "892c2aab33bffff",
+            "points_count": 10,
+            "rank": 1,
+            "score": 63.02325581395349
+        },
+        {
+            "category": "HIGH",
+            "hex_id": "892c2aa951bffff",
+            "points_count": 7,
+            "rank": 2,
+            "score": 50.20887166236004
+        },
+        {
+            "category": "MEDIUM",
+            "hex_id": "892c2aab30fffff",
+            "points_count": 5,
+            "rank": 3,
+            "score": 47.71533161068045
+        },
+        {
+            "category": "MEDIUM",
+            "hex_id": "892c2aab367ffff",
+            "points_count": 6,
+            "rank": 4,
+            "score": 41.83247200689061
+        },
+        {
+            "category": "MEDIUM",
+            "hex_id": "892c2aab307ffff",
+            "points_count": 13,
+            "rank": 5,
+            "score": 39.541343669250644
+        },
+        {
+            "category": "MEDIUM",
+            "hex_id": "892c2aa9553ffff",
+            "points_count": 11,
+            "rank": 6,
+            "score": 38.9922480620155
+        },
+        {
+            "category": "MEDIUM",
+            "hex_id": "892c2a334d7ffff",
+            "points_count": 0,
+            "rank": 7,
+            "score": 38.88888888888889
+        },
+        {
+            "category": "MEDIUM",
+            "hex_id": "892c2aab36fffff",
+            "points_count": 2,
+            "rank": 8,
+            "score": 38.141688199827726
+        },
+        {
+            "category": "MEDIUM",
+            "hex_id": "892c2aa95cfffff",
+            "points_count": 12,
+            "rank": 9,
+            "score": 36.99827734711455
+        },
+        {
+            "category": "MEDIUM",
+            "hex_id": "892c2aab377ffff",
+            "points_count": 4,
+            "rank": 10,
+            "score": 34.15374677002584
+        }
+    ]
+}

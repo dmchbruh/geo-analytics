@@ -1,0 +1,10 @@
+{
+  "georgia": {
+    "path": "data/pbf/georgia-latest.osm.pbf",
+    "country_code": "ge"
+  },
+  "switzerland": {
+    "path": "data/pbf/switzerland-latest.osm.pbf",
+    "country_code": "ch"
+  }
+}

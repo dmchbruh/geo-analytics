@@ -1,0 +1,16 @@
+{
+  "input": "data/raw/points.csv",
+  "output": "data/processed/points_h3.csv",
+  "features_output": "data/processed/hex_features.csv",
+  "features_json_output": "data/processed/hex_features.json",
+  "geojson_output": "data/processed/hex_features.geojson",
+  "summary_output": "data/processed/summary.json",
+  "point_weight": 0.7,
+  "neighbor_weight": 0.3,
+  "resolution": 9,
+  "density_weight": 0.2,
+  "database": "data/geoanalytics.db",
+  "low_threshold": 20,
+  "medium_threshold": 50,
+  "high_threshold": 80
+}
