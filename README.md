@@ -12,11 +12,51 @@ Built as a C++23 backend with a lightweight web UI — suitable as a portfolio p
 - **Opportunity scoring**: demand weight vs. competitor penalty, adjustable in the UI
 - **Growth signal**: construction / development activity as an investment indicator
 - **Chain vs. independent segmentation**: competitor breakdown with visual bar in the map popup and sidebar
+- **Landmarks**: nearby attractions, parks, and venues shown per hex
 - **EN / RU interface**: language toggle in the top bar, switches instantly without reload
 - **Top zones navigation**: click any top-10 zone in the sidebar to fly to it on the map
+- **Export**: download results as GeoJSON or CSV directly from the UI
 - **Dual data sources**: live Overpass API or offline `.osm.pbf` extracts via Osmium
 - **REST API** + embedded map UI (Leaflet)
 - **Unit tests** with Catch2
+
+## Scoring methodology
+
+Analysis runs in two stages.
+
+**Stage 1 — Data collection.** For a given city and business type, three point sets are fetched from OSM:
+
+- **Competitors** — existing businesses of the same type (e.g. cafes for a coffee shop)
+- **Demand proxies** — population and footfall signals: offices, residential buildings, bus stops
+- **Growth signal** — active construction sites as a forward-looking indicator
+
+All points are projected onto an H3 hexagonal grid at resolution 9 (each cell ≈ 0.1 km²).
+
+**Stage 2 — Scoring.** Each hex receives an opportunity score:
+
+```
+score = demand_score − competition_penalty
+```
+
+Both terms are normalised against the 90th percentile of their distributions across all hexes — this prevents a handful of dense outlier cells from collapsing the rest of the map into a single low band.
+
+```
+demand_score      = (demandCount / p90_demand) × demand_weight × 100
+competition_penalty = (competitorCount / p90_competitors) × competitor_weight × 100
+```
+
+Weights default to `demand = 0.7`, `competition = 0.3` and are adjustable in the UI.
+
+**Category assignment** uses rank percentiles rather than fixed thresholds, so the distribution is always meaningful regardless of city size:
+
+| Category | Rank percentile |
+|----------|----------------|
+| VERY_HIGH | top 10% |
+| HIGH | next 20% |
+| MEDIUM | next 40% |
+| LOW | bottom 30% |
+
+**Investment score** is calculated separately from the growth signal (construction activity) using the same 90th-percentile normalisation, and displayed independently in each hex popup.
 
 ## Architecture
 
@@ -101,8 +141,7 @@ Download regional extracts from [Geofabrik](https://download.geofabrik.de/).
 | `GET /` | Web UI |
 | `GET /health` | Health check |
 | `GET /pbf-sources` | List configured offline sources |
-| `GET /analyze?city=&business=&source=&demand_weight=&competitor_weight=` | Run analysis |
-| `GET /analyze?...&demand_weight=&competitor_weight=` | Adjustable scoring weights (0.0–1.0) |
+| `GET /analyze?city=&business=&source=&demand_weight=&competitor_weight=` | Run analysis, weights in range 0.0–1.0 |
 
 ## Logging & troubleshooting
 
@@ -124,10 +163,11 @@ Common issues:
 
 ## Business types
 
-| Key | Competitors | Demand proxies |
-|-----|-------------|----------------|
-| `coffee_shop` | cafes | offices, residential, bus stops, building levels |
-| `barbershop` | hairdressers, barbers | residential, bus stops |
+| Key | Competitors | Demand proxies | Landmarks |
+|-----|-------------|----------------|-----------|
+| `coffee_shop` | cafes | offices, residential, bus stops | attractions, museums, parks, malls, theatres |
+| `barbershop` | hairdressers, barbers | residential, bus stops | attractions, museums, parks, malls, theatres |
+| `restaurant` | restaurants, fast food | offices, residential, bus stops | attractions, museums, parks, malls, theatres, nightclubs |
 
 ## Tech stack
 
