@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>GeoAnalytics — анализ локаций</title>
+<title>GeoAnalytics — Location Intelligence</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 <style>
     html, body {
@@ -127,6 +127,23 @@
         color: #f87171;
     }
 
+    #langBtn {
+        background: none;
+        border: 1px solid #374151;
+        color: #9ca3af;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    #langBtn:hover {
+        border-color: #6b7280;
+        color: #e5e7eb;
+    }
+
     #mapWrap {
         position: absolute;
         top: 64px;
@@ -183,6 +200,61 @@
         font-size: 12px;
     }
 
+    #sidebar .top-zone-clickable {
+        cursor: pointer;
+        border-radius: 4px;
+        padding: 6px 4px;
+        transition: background 0.15s;
+    }
+
+    #sidebar .top-zone-clickable:hover {
+        background: #374151;
+    }
+
+    #sidebar .top-zone-chain {
+        font-size: 11px;
+        color: #9ca3af;
+        margin-top: 2px;
+    }
+
+    .competitor-bar {
+        display: flex;
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 6px;
+        margin-bottom: 2px;
+    }
+
+    .competitor-bar-chain {
+        background: #f87171;
+    }
+
+    .competitor-bar-independent {
+        background: #60a5fa;
+    }
+
+    .competitor-bar-legend {
+        display: flex;
+        gap: 12px;
+        font-size: 11px;
+        color: #9ca3af;
+        margin-top: 2px;
+    }
+
+    .competitor-bar-legend span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
     .empty-state {
         position: absolute;
         top: 50%;
@@ -226,6 +298,21 @@
     .popup-con {
         color: #fca5a5;
     }
+
+    .popup-competitor-bar {
+        display: flex;
+        height: 6px;
+        border-radius: 3px;
+        overflow: hidden;
+        margin: 4px 0 2px 0;
+    }
+
+    .popup-competitor-legend {
+        display: flex;
+        gap: 10px;
+        font-size: 11px;
+        color: #9ca3af;
+    }
 </style>
 </head>
 <body>
@@ -234,43 +321,208 @@
         <h1>GeoAnalytics</h1>
 
         <div class="field-wrap">
-            <input type="text" id="cityInput" placeholder="City (e.g. Tbilisi)" autocomplete="off" />
+            <input type="text" id="cityInput" autocomplete="off" />
             <div id="suggestions"></div>
         </div>
 
         <select id="businessSelect">
-            <option value="coffee_shop">Кофейня</option>
-            <option value="barbershop">Барбершоп</option>
+            <option value="coffee_shop"></option>
+            <option value="barbershop"></option>
         </select>
 
         <label class="toggle-label">
-            Спрос
-            <input type="range" id="balanceSlider" min="0" max="100" value="30" style="width:100px" />
-            Конкуренты
+            <span id="labelDemand"></span>
+            <input type="range" id="balanceSlider" min="0" max="100" value="70" style="width:100px" />
+            <span id="labelCompetitors"></span>
         </label>
 
         <select id="sourceSelect">
-            <option value="live">OpenStreetMap (онлайн)</option>
+            <option value="live"></option>
         </select>
 
-        <button id="analyzeBtn">Анализировать</button>
+        <button id="analyzeBtn"></button>
 
         <label class="toggle-label">
-            <input type="checkbox" id="hideLowToggle" /> Скрыть низкий потенциал
+            <input type="checkbox" id="hideLowToggle" /> <span id="labelHideLow"></span>
         </label>
 
-        <span id="statusText">Введите город и нажмите "Анализировать"</span>
+        <button id="langBtn">RU</button>
+
+        <span id="statusText"></span>
     </div>
 
 <div id="mapWrap">
     <div id="map"></div>
     <div id="sidebar"></div>
 </div>
-<div class="empty-state" id="emptyState">Результат появится здесь</div>
+<div class="empty-state" id="emptyState"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
     const SERVER_URL = '';
+
+    const TRANSLATIONS = {
+        en: {
+            pageTitle: 'GeoAnalytics — Location Intelligence',
+            cityPlaceholder: 'City (e.g. London)',
+            businessCoffee: 'Coffee Shop',
+            businessBarber: 'Barbershop',
+            labelDemand: 'Demand',
+            labelCompetitors: 'Competition',
+            sourceOnline: 'OpenStreetMap (online)',
+            sourceOfflineSuffix: '(offline)',
+            analyzeBtn: 'Analyze',
+            labelHideLow: 'Hide low potential',
+            emptyState: 'Results will appear here',
+            statusInitial: 'Enter a city and click "Analyze"',
+            statusAnalyzing: 'Analyzing, this may take up to a minute\u2026',
+            statusDone: (n) => `Done: ${n} hexes analyzed`,
+            statusError: (msg) => `Error: ${msg}`,
+            statusNoCity: 'Please enter a city name',
+            statusNoServer: 'Could not reach the server. Is GeoAnalyticsServer.exe running?',
+            statusPartialFail: (parts) => `Warning: failed to load (${parts.join(', ')}). Try again in 20\u201330 sec.`,
+            failCompetitors: 'competitors',
+            failDemand: 'demand',
+            failGrowth: 'construction',
+            categoryLow: 'Low potential',
+            categoryMedium: 'Medium potential',
+            categoryHigh: 'Good potential',
+            categoryVeryHigh: 'Excellent potential',
+            sidebarSummary: 'Summary',
+            sidebarTotalHexes: 'Total hexes',
+            sidebarCompetitors: 'Competitors found',
+            sidebarDemand: 'Demand points',
+            sidebarConstruction: 'Construction points',
+            sidebarCompetition: 'Competition structure',
+            sidebarByCategory: 'By category',
+            sidebarTopZones: 'Top zones',
+            sidebarChains: (n, names) => names.length > 0 ? `Chains: ${names.join(', ')}` : `Chains: ${n}`,
+            sidebarIndependentOnly: 'Independent competitors only',
+            popupScore: 'score',
+            popupCompetitorsNearby: 'Competitors nearby',
+            popupDemandSignal: 'Demand signal',
+            popupInvestment: 'Investment score',
+            popupChains: 'Chains',
+            popupPros: 'Pros',
+            popupCons: 'Cons',
+            barChains: 'Chains',
+            barIndependent: 'Independent',
+            proNoCompetitors: 'No direct competitors nearby',
+            proFewCompetitors: (n) => `Few competitors nearby (${n})`,
+            proNoChains: 'Only independent competitors — no major chains',
+            proHighDemand: 'High potential demand',
+            proGrowth: '🚧 New development nearby — growing demand',
+            conHighCompetition: (n) => `High competition (${n} nearby)`,
+            conChains: (n, names) => `${n} chain(s) nearby (${names.join(', ')})`,
+            conOneChain: (name) => `Chain nearby: ${name}`,
+            conLowDemand: 'Low potential demand in this area',
+            conNone: '—',
+            proNone: '—',
+        },
+        ru: {
+            pageTitle: 'GeoAnalytics — анализ локаций',
+            cityPlaceholder: 'Город (например, Тбилиси)',
+            businessCoffee: 'Кофейня',
+            businessBarber: 'Барбершоп',
+            labelDemand: 'Спрос',
+            labelCompetitors: 'Конкуренты',
+            sourceOnline: 'OpenStreetMap (онлайн)',
+            sourceOfflineSuffix: '(офлайн)',
+            analyzeBtn: 'Анализировать',
+            labelHideLow: 'Скрыть низкий потенциал',
+            emptyState: 'Результат появится здесь',
+            statusInitial: 'Введите город и нажмите "Анализировать"',
+            statusAnalyzing: 'Анализируем, это может занять до минуты\u2026',
+            statusDone: (n) => `Готово: ${n} гексов проанализировано`,
+            statusError: (msg) => `Ошибка: ${msg}`,
+            statusNoCity: 'Введите название города',
+            statusNoServer: 'Не удалось связаться с сервером. Запущен ли GeoAnalyticsServer.exe?',
+            statusPartialFail: (parts) => `Внимание: не удалось загрузить (${parts.join(', ')}). Попробуйте через 20–30 сек.`,
+            failCompetitors: 'конкуренты',
+            failDemand: 'спрос',
+            failGrowth: 'застройка',
+            categoryLow: 'Низкий потенциал',
+            categoryMedium: 'Средний потенциал',
+            categoryHigh: 'Хороший потенциал',
+            categoryVeryHigh: 'Отличный потенциал',
+            sidebarSummary: 'Сводка',
+            sidebarTotalHexes: 'Всего гексов',
+            sidebarCompetitors: 'Найдено конкурентов',
+            sidebarDemand: 'Точек спроса',
+            sidebarConstruction: 'Точек застройки',
+            sidebarCompetition: 'Структура конкуренции',
+            sidebarByCategory: 'По категориям',
+            sidebarTopZones: 'Топ зон',
+            sidebarChains: (n, names) => names.length > 0 ? `Сети: ${names.join(', ')}` : `Сети: ${n}`,
+            sidebarIndependentOnly: 'Только частные конкуренты',
+            popupScore: 'балл',
+            popupCompetitorsNearby: 'Конкурентов рядом',
+            popupDemandSignal: 'Индикатор спроса',
+            popupInvestment: 'Инвестиционный потенциал',
+            popupChains: 'Сети',
+            popupPros: 'Плюсы',
+            popupCons: 'Минусы',
+            barChains: 'Сети',
+            barIndependent: 'Частные',
+            proNoCompetitors: 'Нет прямых конкурентов рядом',
+            proFewCompetitors: (n) => `Мало конкурентов рядом (${n})`,
+            proNoChains: 'Только частные конкуренты — нет крупных сетей',
+            proHighDemand: 'Высокий потенциальный спрос',
+            proGrowth: '🚧 Рядом строится новый район — растущий спрос',
+            conHighCompetition: (n) => `Высокая конкуренция (${n} рядом)`,
+            conChains: (n, names) => `Рядом ${n} сетевых заведений (${names.join(', ')})`,
+            conOneChain: (name) => `Рядом сетевое заведение: ${name}`,
+            conLowDemand: 'Низкий потенциальный спрос в этой зоне',
+            conNone: '—',
+            proNone: '—',
+        }
+    };
+
+    let currentLang = 'en';
+
+    function t() {
+        return TRANSLATIONS[currentLang];
+    }
+
+    function applyTranslations() {
+        const tr = t();
+
+        document.title = tr.pageTitle;
+        document.getElementById('cityInput').placeholder = tr.cityPlaceholder;
+        document.getElementById('labelDemand').textContent = tr.labelDemand;
+        document.getElementById('labelCompetitors').textContent = tr.labelCompetitors;
+        document.getElementById('analyzeBtn').textContent = tr.analyzeBtn;
+        document.getElementById('labelHideLow').textContent = tr.labelHideLow;
+        document.getElementById('emptyState').textContent = tr.emptyState;
+        document.getElementById('langBtn').textContent = currentLang === 'en' ? 'RU' : 'EN';
+
+        const businessSelect = document.getElementById('businessSelect');
+        businessSelect.options[0].textContent = tr.businessCoffee;
+        businessSelect.options[1].textContent = tr.businessBarber;
+
+        const sourceSelect = document.getElementById('sourceSelect');
+        sourceSelect.options[0].textContent = tr.sourceOnline;
+        for (let i = 1; i < sourceSelect.options.length; i++) {
+            const key = sourceSelect.options[i].value;
+            sourceSelect.options[i].textContent =
+                key.charAt(0).toUpperCase() + key.slice(1) + ' ' + tr.sourceOfflineSuffix;
+        }
+
+        const statusEl = document.getElementById('statusText');
+        if (statusEl.dataset.state === 'initial' || !statusEl.dataset.state) {
+            statusEl.textContent = tr.statusInitial;
+        }
+
+        if (lastGeoJson && lastSummaryData) {
+            renderSidebar(
+                lastSummaryData.summary,
+                lastGeoJson,
+                lastSummaryData.competitorCount,
+                lastSummaryData.demandCount,
+                lastSummaryData.growthCount
+            );
+        }
+    }
 
     const map = L.map('map', { zoomControl: true }).setView([20, 0], 2);
 
@@ -281,6 +533,8 @@
 
     let geoLayer = null;
     let lastGeoJson = null;
+    let lastSummaryData = null;
+    let hexLayers = {};
 
     const categoryColors = {
         LOW: '#ff0000',
@@ -289,17 +543,20 @@
         VERY_HIGH: '#00aa00'
     };
 
-    const categoryLabels = {
-        LOW: 'Низкий потенциал',
-        MEDIUM: 'Средний потенциал',
-        HIGH: 'Хороший потенциал',
-        VERY_HIGH: 'Отличный потенциал'
-    };
+    function categoryLabel(key) {
+        return {
+            LOW: t().categoryLow,
+            MEDIUM: t().categoryMedium,
+            HIGH: t().categoryHigh,
+            VERY_HIGH: t().categoryVeryHigh
+        }[key] || key;
+    }
 
-    function setStatus(text, isError) {
+    function setStatus(text, isError, state) {
         const el = document.getElementById('statusText');
         el.textContent = text;
         el.className = isError ? 'error' : '';
+        el.dataset.state = state || '';
     }
 
     function styleForFeature(feature) {
@@ -322,47 +579,89 @@
         };
     }
 
+    function buildCompetitorBarHtml(chainCount, independentCount, cssClass) {
+        const total = chainCount + independentCount;
+
+        if (total === 0) {
+            return '';
+        }
+
+        const chainPct = Math.round((chainCount / total) * 100);
+        const indPct = 100 - chainPct;
+
+        return `
+            <div class="${cssClass}-bar">
+                <div class="${cssClass}-bar-chain" style="width:${chainPct}%"></div>
+                <div class="${cssClass}-bar-independent" style="width:${indPct}%"></div>
+            </div>
+            <div class="${cssClass}-legend">
+                <span><span class="legend-dot" style="background:#f87171"></span>${t().barChains}: ${chainCount}</span>
+                <span><span class="legend-dot" style="background:#60a5fa"></span>${t().barIndependent}: ${independentCount}</span>
+            </div>
+        `;
+    }
+
     function buildProsCons(p) {
+        const tr = t();
         const pros = [];
         const cons = [];
 
         if (p.points_count === 0) {
-            pros.push('Нет прямых конкурентов рядом');
+            pros.push(tr.proNoCompetitors);
         } else if (p.points_count <= 2) {
-            pros.push('Мало конкурентов рядом (' + p.points_count + ')');
+            pros.push(tr.proFewCompetitors(p.points_count));
         } else if (p.points_count >= 8) {
-            cons.push('Высокая конкуренция (' + p.points_count + ' рядом)');
+            cons.push(tr.conHighCompetition(p.points_count));
+        }
+
+        if (p.chain_count >= 2) {
+            cons.push(tr.conChains(p.chain_count, p.chain_names || []));
+        } else if (p.chain_count === 1) {
+            cons.push(tr.conOneChain((p.chain_names || [])[0]));
+        } else if (p.chain_count === 0 && p.points_count > 0) {
+            pros.push(tr.proNoChains);
         }
 
         if (p.demand_count >= 50) {
-            pros.push('Высокий потенциальный спрос');
+            pros.push(tr.proHighDemand);
         } else if (p.demand_count <= 5) {
-            cons.push('Низкий потенциальный спрос в этой зоне');
+            cons.push(tr.conLowDemand);
         }
 
         if (p.growth_count > 0) {
-            pros.push('🚧 Рядом строится новый район — растущий спрос');
+            pros.push(tr.proGrowth);
         }
 
-        if (pros.length === 0) pros.push('—');
-        if (cons.length === 0) cons.push('—');
+        if (pros.length === 0) pros.push(tr.proNone);
+        if (cons.length === 0) cons.push(tr.conNone);
 
         return { pros, cons };
     }
 
     function popupHtml(p) {
+        const tr = t();
         const { pros, cons } = buildProsCons(p);
 
         const prosHtml = pros.map(x => '<div class="popup-pro">+ ' + x + '</div>').join('');
         const consHtml = cons.map(x => '<div class="popup-con">- ' + x + '</div>').join('');
 
-       return `
-            <div class="popup-title">${categoryLabels[p.category] || p.category} · балл ${Number(p.score).toFixed(1)}</div>
-            <div>Конкурентов рядом: ${p.points_count}</div>
-            <div>Индикатор спроса: ${p.demand_count}</div>
-            <div>Инвестиционный потенциал: ${Number(p.investment_score).toFixed(0)}${p.growth_count > 0 ? ' 🚧' : ''}</div>
-            <div class="popup-section"><b>Плюсы</b>${prosHtml}</div>
-            <div class="popup-section"><b>Минусы</b>${consHtml}</div>
+        const chainCount = p.chain_count || 0;
+        const independentCount = p.independent_count || 0;
+        const competitorBarHtml = buildCompetitorBarHtml(chainCount, independentCount, 'popup-competitor');
+
+        const chainsLine = p.chain_names && p.chain_names.length > 0
+            ? `<div style="font-size:11px;color:#9ca3af;margin-top:2px">${tr.popupChains}: ${p.chain_names.join(', ')}</div>`
+            : '';
+
+        return `
+            <div class="popup-title">${categoryLabel(p.category)} · ${tr.popupScore} ${Number(p.score).toFixed(1)}</div>
+            <div>${tr.popupCompetitorsNearby}: ${p.points_count}</div>
+            ${competitorBarHtml}
+            ${chainsLine}
+            <div style="margin-top:4px">${tr.popupDemandSignal}: ${p.demand_count}</div>
+            <div>${tr.popupInvestment}: ${Number(p.investment_score).toFixed(0)}${p.growth_count > 0 ? ' 🚧' : ''}</div>
+            <div class="popup-section"><b>${tr.popupPros}</b>${prosHtml}</div>
+            <div class="popup-section"><b>${tr.popupCons}</b>${consHtml}</div>
         `;
     }
 
@@ -371,12 +670,20 @@
             map.removeLayer(geoLayer);
         }
 
+        hexLayers = {};
+
         geoLayer = L.geoJSON(geojson, {
             style: styleForFeature,
             onEachFeature: (feature, layer) => {
                 layer.bindPopup(popupHtml(feature.properties || {}));
                 layer.on('mouseover', () => layer.setStyle({ weight: 3 }));
                 layer.on('mouseout', () => layer.setStyle({ weight: 1 }));
+
+                const hexId = (feature.properties || {}).hex_id;
+
+                if (hexId) {
+                    hexLayers[hexId] = layer;
+                }
             }
         }).addTo(map);
 
@@ -406,7 +713,21 @@
         renderGeoJson(filtered);
     }
 
-    function renderSidebar(summary, competitorCount, demandCount, growthCount) {
+    function computeChainTotals(geojson) {
+        let totalChain = 0;
+        let totalIndependent = 0;
+
+        (geojson.features || []).forEach(f => {
+            const p = f.properties || {};
+            totalChain += p.chain_count || 0;
+            totalIndependent += p.independent_count || 0;
+        });
+
+        return { totalChain, totalIndependent };
+    }
+
+    function renderSidebar(summary, geojson, competitorCount, demandCount, growthCount) {
+        const tr = t();
         const sidebar = document.getElementById('sidebar');
         sidebar.style.display = 'block';
 
@@ -417,32 +738,73 @@
             const count = dist[key] || 0;
             categoryRows += `
                 <div class="stat-row category-row">
-                    <span><span class="dot" style="background:${categoryColors[key]}"></span>${categoryLabels[key]}</span>
+                    <span><span class="dot" style="background:${categoryColors[key]}"></span>${categoryLabel(key)}</span>
                     <span>${count}</span>
                 </div>
             `;
         }
 
+        const { totalChain, totalIndependent } = computeChainTotals(geojson);
+        const competitorBarHtml = buildCompetitorBarHtml(totalChain, totalIndependent, 'competitor-bar');
+
         let topZonesHtml = '';
         (summary.top_zones || []).forEach(zone => {
+            const zoneFeature = (geojson.features || []).find(
+                f => f.properties && f.properties.hex_id === zone.hex_id
+            );
+            const zoneProps = zoneFeature ? zoneFeature.properties : {};
+            const chainCount = zoneProps.chain_count || 0;
+            const indCount = zoneProps.independent_count || 0;
+            const chainNames = zoneProps.chain_names || [];
+
+            let chainLine = '';
+            if (chainCount > 0) {
+                chainLine = `<div class="top-zone-chain">${tr.sidebarChains(chainCount, chainNames)}</div>`;
+            } else if (indCount > 0) {
+                chainLine = `<div class="top-zone-chain">${tr.sidebarIndependentOnly}</div>`;
+            }
+
             topZonesHtml += `
-                <div class="top-zone">
-                    #${zone.rank} · ${zone.hex_id} · балл ${Number(zone.score).toFixed(1)} · ${categoryLabels[zone.category] || zone.category}
+                <div class="top-zone top-zone-clickable" data-hex-id="${zone.hex_id}">
+                    <div>#${zone.rank} · ${tr.popupScore} ${Number(zone.score).toFixed(1)} · ${categoryLabel(zone.category)}</div>
+                    <div style="font-size:11px;color:#9ca3af">${zone.hex_id}</div>
+                    ${chainLine}
                 </div>
             `;
         });
 
         sidebar.innerHTML = `
-            <h2>Сводка</h2>
-            <div class="stat-row"><span>Всего гексов</span><span>${summary.hex_count}</span></div>
-            <div class="stat-row"><span>Найдено конкурентов</span><span>${competitorCount}</span></div>
-            <div class="stat-row"><span>Точек спроса</span><span>${demandCount}</span></div>
-            <div class="stat-row"><span>Точек застройки</span><span>${growthCount}</span></div>
-            <h2 style="margin-top:16px">По категориям</h2>
+            <h2>${tr.sidebarSummary}</h2>
+            <div class="stat-row"><span>${tr.sidebarTotalHexes}</span><span>${summary.hex_count}</span></div>
+            <div class="stat-row"><span>${tr.sidebarCompetitors}</span><span>${competitorCount}</span></div>
+            <div class="stat-row"><span>${tr.sidebarDemand}</span><span>${demandCount}</span></div>
+            <div class="stat-row"><span>${tr.sidebarConstruction}</span><span>${growthCount}</span></div>
+            <h2 style="margin-top:16px">${tr.sidebarCompetition}</h2>
+            ${competitorBarHtml}
+            <h2 style="margin-top:16px">${tr.sidebarByCategory}</h2>
             ${categoryRows}
-            <h2 style="margin-top:16px">Топ зон</h2>
+            <h2 style="margin-top:16px">${tr.sidebarTopZones}</h2>
             ${topZonesHtml}
         `;
+
+        sidebar.querySelectorAll('.top-zone-clickable').forEach(el => {
+            el.addEventListener('click', () => {
+                const hexId = el.dataset.hexId;
+                const layer = hexLayers[hexId];
+
+                if (!layer) {
+                    return;
+                }
+
+                const bounds = layer.getBounds();
+
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, { maxZoom: 14, padding: [60, 60] });
+                }
+
+                layer.openPopup();
+            });
+        });
     }
 
     async function runAnalysis() {
@@ -451,50 +813,58 @@
         const btn = document.getElementById('analyzeBtn');
 
         if (!city) {
-            setStatus('Введите название города', true);
+            setStatus(t().statusNoCity, true);
             return;
         }
 
         btn.disabled = true;
-        setStatus('Анализируем, это может занять до минуты...', false);
+        setStatus(t().statusAnalyzing, false, 'analyzing');
 
         try {
-        const source = document.getElementById('sourceSelect').value;
-        const balance = document.getElementById('balanceSlider').value;
-        const competitorWeight = balance / 100;
-        const demandWeight = 1 - competitorWeight;
+            const source = document.getElementById('sourceSelect').value;
+            const balance = document.getElementById('balanceSlider').value;
+            const demandWeight = balance / 100;
+            const competitorWeight = 1 - demandWeight;
 
-        const url = SERVER_URL
-            + '/analyze?city=' + encodeURIComponent(city)
-            + '&business=' + encodeURIComponent(business)
-            + '&source=' + encodeURIComponent(source)
-            + '&demand_weight=' + demandWeight
-            + '&competitor_weight=' + competitorWeight;
+            const url = SERVER_URL
+                + '/analyze?city=' + encodeURIComponent(city)
+                + '&business=' + encodeURIComponent(business)
+                + '&source=' + encodeURIComponent(source)
+                + '&demand_weight=' + demandWeight
+                + '&competitor_weight=' + competitorWeight;
+
             const response = await fetch(url);
             const data = await response.json();
 
             if (data.error) {
-                setStatus('Ошибка: ' + data.error, true);
+                setStatus(t().statusError(data.error), true, 'error');
                 btn.disabled = false;
                 return;
             }
 
             lastGeoJson = data.geojson;
+            lastSummaryData = {
+                summary: data.summary,
+                competitorCount: data.competitor_count,
+                demandCount: data.demand_count,
+                growthCount: data.growth_count
+            };
+
             applyFilterAndRender();
-            renderSidebar(data.summary, data.competitor_count, data.demand_count, data.growth_count);
+            renderSidebar(data.summary, data.geojson, data.competitor_count, data.demand_count, data.growth_count);
 
             const failedParts = [];
-            if (data.competitor_fetch_failed) failedParts.push('конкуренты');
-            if (data.demand_fetch_failed) failedParts.push('спрос');
-            if (data.growth_fetch_failed) failedParts.push('застройка');
+            if (data.competitor_fetch_failed) failedParts.push(t().failCompetitors);
+            if (data.demand_fetch_failed) failedParts.push(t().failDemand);
+            if (data.growth_fetch_failed) failedParts.push(t().failGrowth);
 
             if (failedParts.length > 0) {
-                setStatus('Внимание: не удалось загрузить (' + failedParts.join(', ') + '). Попробуйте через 20-30 сек.', true);
+                setStatus(t().statusPartialFail(failedParts), true, 'warn');
             } else {
-                setStatus('Готово: ' + data.summary.hex_count + ' гексов проанализировано', false);
+                setStatus(t().statusDone(data.summary.hex_count), false, 'done');
             }
         } catch (err) {
-            setStatus('Не удалось связаться с сервером. Запущен ли GeoAnalyticsServer.exe?', true);
+            setStatus(t().statusNoServer, true, 'error');
         }
 
         btn.disabled = false;
@@ -507,6 +877,15 @@
         if (e.key === 'Enter') {
             document.getElementById('suggestions').style.display = 'none';
             runAnalysis();
+        }
+    });
+
+    document.getElementById('langBtn').addEventListener('click', () => {
+        currentLang = currentLang === 'en' ? 'ru' : 'en';
+        applyTranslations();
+
+        if (lastGeoJson) {
+            applyFilterAndRender();
         }
     });
 
@@ -558,11 +937,12 @@
             const response = await fetch(SERVER_URL + '/pbf-sources');
             const sources = await response.json();
             const select = document.getElementById('sourceSelect');
+            const tr = t();
 
             sources.forEach(key => {
                 const opt = document.createElement('option');
                 opt.value = key;
-                opt.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ' (офлайн)';
+                opt.textContent = key.charAt(0).toUpperCase() + key.slice(1) + ' ' + tr.sourceOfflineSuffix;
                 select.appendChild(opt);
             });
         } catch (err) {
@@ -574,6 +954,9 @@
             document.getElementById('suggestions').style.display = 'none';
         }
     });
+
+    applyTranslations();
+    setStatus(t().statusInitial, false, 'initial');
 </script>
 
 </body>

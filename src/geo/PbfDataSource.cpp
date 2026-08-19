@@ -54,7 +54,10 @@ std::vector<Point> parseOsmiumGeoJson(const std::string& json)
     try
     {
         parsed = nlohmann::json::parse(json);
+        spdlog::info("parseOsmiumGeoJson: parsed ok, features count={}",
+            parsed.contains("features") ? parsed["features"].size() : 0);
     }
+
     catch (const nlohmann::json::parse_error& e)
     {
         spdlog::error("Failed to parse osmium export output: {}", e.what());
@@ -66,41 +69,87 @@ std::vector<Point> parseOsmiumGeoJson(const std::string& json)
         return points;
     }
 
+    std::size_t skipped = 0;
     std::int64_t fallbackId = 0;
 
     for (const auto& feature : parsed["features"])
     {
-        if (!feature.contains("geometry") || !feature["geometry"].contains("coordinates"))
+        if (!feature.contains("geometry") || feature["geometry"].is_null())
         {
+            skipped++;
             continue;
         }
 
         const auto& geometry = feature["geometry"];
 
+        if (!geometry.contains("coordinates"))
+        {
+            skipped++;
+            continue;
+        }
+
         if (geometry.value("type", "") != "Point")
         {
+            skipped++;
             continue;
         }
 
         const auto& coords = geometry["coordinates"];
 
-        if (!coords.is_array() || coords.size() != 2)
+        if (!coords.is_array() || coords.size() < 2)
         {
+            skipped++;
+            continue;
+        }
+
+        if (!coords[0].is_number() || !coords[1].is_number())
+        {
+            skipped++;
+            continue;
+        }
+
+        double lon = coords[0].get<double>();
+        double lat = coords[1].get<double>();
+
+        if (lat < -90.0 || lat > 90.0 || lon < -180.0 || lon > 180.0)
+        {
+            skipped++;
             continue;
         }
 
         std::string id = std::to_string(fallbackId++);
 
-        if (feature.contains("properties") && feature["properties"].contains("@id"))
+        if (feature.contains("properties") && !feature["properties"].is_null() && feature["properties"].contains("@id"))
         {
             id = feature["properties"]["@id"].dump();
         }
 
+        bool isChain = false;
+        std::string brandName;
+
+        if (feature.contains("properties") && !feature["properties"].is_null())
+        {
+            const auto& props = feature["properties"];
+
+            if (props.contains("brand") && props["brand"].is_string())
+            {
+                isChain = true;
+                brandName = props["brand"].get<std::string>();
+            }
+        }
+
         points.push_back({
             id,
-            coords[1].get<double>(),
-            coords[0].get<double>()
+            lat,
+            lon,
+            isChain,
+            brandName
             });
+    }
+
+    if (skipped > 0)
+    {
+        spdlog::warn("parseOsmiumGeoJson: skipped {} invalid features", skipped);
     }
 
     return points;
@@ -195,7 +244,7 @@ std::optional<std::vector<Point>> fetchPbfPoints(
     std::stringstream buffer;
     buffer << file.rdbuf();
 
-    spdlog::info("Parsing osmium export output ({} bytes)", buffer.str().size());
+    spdlog::info("Parsing osmium export output ({} bytes)", buffer.str().size());;
 
     auto points = parseOsmiumGeoJson(buffer.str());
 

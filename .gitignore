@@ -1,1 +1,5 @@
 *osm.pbf
+data/pbf/
+logs/
+out/
+.vs/

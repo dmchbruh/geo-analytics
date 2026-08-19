@@ -4,11 +4,16 @@ Location intelligence engine for small-business site selection. The project aggr
 
 Built as a C++23 backend with a lightweight web UI — suitable as a portfolio piece demonstrating geospatial data pipelines, API design, and practical analytics.
 
+![GeoAnalytics screenshot](docs/screenshot.png)
+
 ## Highlights
 
 - **H3 hex aggregation** at configurable resolution (default: 9)
 - **Opportunity scoring**: demand weight vs. competitor penalty, adjustable in the UI
 - **Growth signal**: construction / development activity as an investment indicator
+- **Chain vs. independent segmentation**: competitor breakdown with visual bar in the map popup and sidebar
+- **EN / RU interface**: language toggle in the top bar, switches instantly without reload
+- **Top zones navigation**: click any top-10 zone in the sidebar to fly to it on the map
 - **Dual data sources**: live Overpass API or offline `.osm.pbf` extracts via Osmium
 - **REST API** + embedded map UI (Leaflet)
 - **Unit tests** with Catch2
@@ -97,6 +102,7 @@ Download regional extracts from [Geofabrik](https://download.geofabrik.de/).
 | `GET /health` | Health check |
 | `GET /pbf-sources` | List configured offline sources |
 | `GET /analyze?city=&business=&source=&demand_weight=&competitor_weight=` | Run analysis |
+| `GET /analyze?...&demand_weight=&competitor_weight=` | Adjustable scoring weights (0.0–1.0) |
 
 ## Logging & troubleshooting
 
@@ -120,7 +126,7 @@ Common issues:
 
 | Key | Competitors | Demand proxies |
 |-----|-------------|----------------|
-| `coffee_shop` | cafes | offices, residential, bus stops |
+| `coffee_shop` | cafes | offices, residential, bus stops, building levels |
 | `barbershop` | hairdressers, barbers | residential, bus stops |
 
 ## Tech stack

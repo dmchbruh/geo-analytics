@@ -124,6 +124,7 @@ namespace
             competitorPoints.size(), demandPoints.size(), growthPoints.size());
 
         auto competitorH3Points = convertToH3(competitorPoints, resolution);
+        auto competitorDetails = aggregateCompetitors(competitorH3Points);
         auto demandH3Points = convertToH3(demandPoints, resolution);
         auto growthH3Points = convertToH3(growthPoints, resolution);
 
@@ -136,7 +137,12 @@ namespace
         spdlog::info("Hex counts: {} competitor, {} demand, {} growth",
             competitorHexes.size(), demandHexes.size(), growthHexes.size());
 
-        auto features = buildOpportunityFeatures(competitorHexes, demandHexes, growthHexes);
+        auto features = buildOpportunityFeatures(
+            competitorHexes,
+            demandHexes,
+            growthHexes,
+            competitorDetails
+        );
 
         spdlog::info("Built {} features, calculating scores", features.size());
 

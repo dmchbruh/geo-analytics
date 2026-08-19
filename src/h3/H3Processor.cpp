@@ -34,10 +34,12 @@ std::vector<H3Point> convertToH3(
         }
 
         result.push_back({
-            point.id,
-            point.lat,
-            point.lon,
-            cell
+             point.id,
+             point.lat,
+             point.lon,
+             cell,
+             point.isChain,
+             point.brandName
             });
     }
 

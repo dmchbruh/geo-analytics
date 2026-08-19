@@ -135,10 +135,30 @@ std::vector<Point> parseOverpassResponse(const std::string& json)
             continue;
         }
 
+        bool isChain = false;
+        std::string brandName;
+
+        if (element.contains("tags"))
+        {
+            const auto& tags = element["tags"];
+
+            if (tags.contains("brand"))
+            {
+                isChain = true;
+
+                if (tags["brand"].is_string())
+                {
+                    brandName = tags["brand"].get<std::string>();
+                }
+            }
+        }
+
         points.push_back({
             std::to_string(element["id"].get<std::int64_t>()),
             lat,
-            lon
+            lon,
+            isChain,
+            brandName
             });
     }
 
@@ -170,7 +190,7 @@ std::optional<std::vector<Point>> fetchOsmPoints(
         query += "  nwr[" + toOverpassFilter(tag) + "](" + bboxStr + ");\n";
     }
 
-    query += ");\nout center;";
+    query += ");\nout center tags;";
 
     cpr::Response response;
 

@@ -117,6 +117,7 @@ int runCli(int argc, char* argv[])
 
         auto competitorResult = fetchOsmPoints(*bbox, category->competitorTags);
         auto demandResult = fetchOsmPoints(*bbox, category->demandTags);
+        auto growthResult = fetchOsmPoints(*bbox, { {"landuse", "construction"}, {"building", "construction"}, {"construction", ""} });
 
         if (!competitorResult || !demandResult)
         {
@@ -128,16 +129,27 @@ int runCli(int argc, char* argv[])
         inputDescription = *cityArg + " / " + *businessArg;
 
         auto demandPoints = *demandResult;
+        auto growthPoints = growthResult.value_or(std::vector<Point>{});
 
         spdlog::info("Demand points fetched: {}", demandPoints.size());
+        spdlog::info("Growth points fetched: {}", growthPoints.size());
 
         auto competitorH3Points = convertToH3(points, config.resolution);
         auto demandH3Points = convertToH3(demandPoints, config.resolution);
+        auto growthH3Points = convertToH3(growthPoints, config.resolution);
 
         auto competitorHexes = aggregateHexes(competitorH3Points);
         auto demandHexes = aggregateHexes(demandH3Points);
+        auto growthHexes = aggregateHexes(growthH3Points);
 
-        features = buildOpportunityFeatures(competitorHexes, demandHexes);
+        auto competitorDetails = aggregateCompetitors(competitorH3Points);
+
+        features = buildOpportunityFeatures(
+            competitorHexes,
+            demandHexes,
+            growthHexes,
+            competitorDetails
+        );
 
         calculateOpportunityScores(
             features,

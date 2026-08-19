@@ -2,6 +2,7 @@
 #include "h3/H3Neighbors.h"
 #include "h3/HexMetrics.h"
 
+#include <spdlog/spdlog.h>
 #include <unordered_set>
 
 std::vector<HexFeature> buildFeatures(
@@ -18,6 +19,7 @@ std::vector<HexFeature> buildFeatures(
 
         feature.hexId = hexId;
         feature.pointsCount = count;
+
         double area = getHexAreaKm2(hexId);
 
         if (area > 0.0)
@@ -49,7 +51,8 @@ std::vector<HexFeature> buildFeatures(
 std::vector<HexFeature> buildOpportunityFeatures(
     const HexCountMap& competitorCounts,
     const HexCountMap& demandCounts,
-    const HexCountMap& growthCounts
+    const HexCountMap& growthCounts,
+    const HexCompetitorMap& competitorDetails
 )
 {
     std::vector<HexFeature> features;
@@ -71,6 +74,8 @@ std::vector<HexFeature> buildOpportunityFeatures(
         allHexes.insert(hexId);
     }
 
+    features.reserve(allHexes.size());
+
     for (H3Index hexId : allHexes)
     {
         HexFeature feature;
@@ -84,6 +89,15 @@ std::vector<HexFeature> buildOpportunityFeatures(
 
         auto growthIt = growthCounts.find(hexId);
         feature.growthCount = growthIt != growthCounts.end() ? growthIt->second : 0;
+
+        auto detailsIt = competitorDetails.find(hexId);
+
+        if (detailsIt != competitorDetails.end())
+        {
+            feature.chainCount = detailsIt->second.chainCount;
+            feature.independentCount = detailsIt->second.independentCount;
+            feature.chainNames = detailsIt->second.chainNames;
+        }
 
         features.push_back(feature);
     }

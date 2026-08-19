@@ -11,6 +11,8 @@ struct H3Point
     double lat;
     double lon;
     H3Index h3Index;
+    bool isChain = false;
+    std::string brandName;
 };
 
 std::vector<H3Point> convertToH3(
