@@ -46,6 +46,7 @@ nlohmann::json buildGeoJson(const std::vector<HexFeature>& features)
             {"chain_count", feature.chainCount},
             {"independent_count", feature.independentCount},
             {"chain_names", feature.chainNames},
+            {"landmark_names", feature.landmarkNames},
             {
     "style",
     {

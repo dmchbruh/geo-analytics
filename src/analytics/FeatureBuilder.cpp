@@ -52,8 +52,9 @@ std::vector<HexFeature> buildOpportunityFeatures(
     const HexCountMap& competitorCounts,
     const HexCountMap& demandCounts,
     const HexCountMap& growthCounts,
-    const HexCompetitorMap& competitorDetails
-)
+    const HexCompetitorMap& competitorDetails,
+    const HexLandmarkMap& landmarkMap
+)    
 {
     std::vector<HexFeature> features;
 
@@ -97,6 +98,13 @@ std::vector<HexFeature> buildOpportunityFeatures(
             feature.chainCount = detailsIt->second.chainCount;
             feature.independentCount = detailsIt->second.independentCount;
             feature.chainNames = detailsIt->second.chainNames;
+        }
+
+        auto landmarkIt = landmarkMap.find(hexId);
+
+        if (landmarkIt != landmarkMap.end())
+        {
+            feature.landmarkNames = landmarkIt->second;
         }
 
         features.push_back(feature);

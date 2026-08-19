@@ -12,7 +12,16 @@ std::optional<BusinessCategory> findBusinessCategory(const std::string& name)
                 {"building", "residential"},
                 {"building", "apartments"},
                 {"highway", "bus_stop"}
-            }
+
+            },
+            {
+                { "tourism", "attraction"},
+                {"tourism", "museum"},
+                {"amenity", "theatre"},
+                {"amenity", "cinema"},
+                {"leisure", "park"},
+                {"shop", "mall"}
+            }   
         };
     }
 
@@ -25,6 +34,39 @@ std::optional<BusinessCategory> findBusinessCategory(const std::string& name)
                 {"building", "residential"},
                 {"building", "apartments"},
                 {"highway", "bus_stop"}
+            },
+            {
+                { "tourism", "attraction" },
+                {"tourism", "museum"},
+                {"amenity", "theatre"},
+                {"amenity", "cinema"},
+                {"leisure", "park"},
+                {"shop", "mall"}
+            }
+        };
+    }
+
+    if (name == "restaurant")
+    {
+        return BusinessCategory{
+            "restaurant",
+            { {"amenity", "restaurant"}, {"amenity", "fast_food"} },
+            {
+                {"office", ""},
+                {"building", "residential"},
+                {"building", "apartments"},
+                {"highway", "bus_stop"},
+                {"amenity", "cinema"},
+                {"amenity", "theatre"}
+            },
+            {
+                { "tourism", "attraction"},
+                {"tourism", "museum"},
+                {"amenity", "theatre"},
+                {"amenity", "cinema"},
+                {"leisure", "park"},
+                {"shop", "mall"},
+                {"amenity", "nightclub"}
             }
         };
     }

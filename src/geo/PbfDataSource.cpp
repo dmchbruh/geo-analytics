@@ -54,8 +54,7 @@ std::vector<Point> parseOsmiumGeoJson(const std::string& json)
     try
     {
         parsed = nlohmann::json::parse(json);
-        spdlog::info("parseOsmiumGeoJson: parsed ok, features count={}",
-            parsed.contains("features") ? parsed["features"].size() : 0);
+            parsed.contains("features") ? parsed["features"].size() : 0;
     }
 
     catch (const nlohmann::json::parse_error& e)
@@ -135,6 +134,10 @@ std::vector<Point> parseOsmiumGeoJson(const std::string& json)
             {
                 isChain = true;
                 brandName = props["brand"].get<std::string>();
+            }
+            else if (props.contains("name") && props["name"].is_string())
+            {
+                brandName = props["name"].get<std::string>();
             }
         }
 

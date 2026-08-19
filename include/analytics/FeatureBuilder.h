@@ -13,5 +13,6 @@ std::vector<HexFeature> buildOpportunityFeatures(
     const HexCountMap& competitorCounts,
     const HexCountMap& demandCounts,
     const HexCountMap& growthCounts,
-    const HexCompetitorMap& competitorDetails
+    const HexCompetitorMap& competitorDetails,
+    const HexLandmarkMap& landmarkMap
 );

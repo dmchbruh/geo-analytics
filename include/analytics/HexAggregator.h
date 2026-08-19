@@ -18,4 +18,12 @@ using HexCompetitorMap = std::unordered_map<H3Index, HexCompetitorData>;
 
 HexCompetitorMap aggregateCompetitors(const std::vector<H3Point>& points);
 
+using HexLandmarkMap = std::unordered_map<H3Index, std::vector<std::string>>;
+
+HexLandmarkMap aggregateLandmarks(const std::vector<H3Point>& points);
+
 HexCountMap aggregateHexes(const std::vector<H3Point>& points);
+
+using HexLandmarkMap = std::unordered_map<H3Index, std::vector<std::string>>;
+
+HexLandmarkMap aggregateLandmarks(const std::vector<H3Point>& points);

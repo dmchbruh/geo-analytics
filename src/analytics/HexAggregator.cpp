@@ -51,3 +51,36 @@ HexCompetitorMap aggregateCompetitors(const std::vector<H3Point>& points)
 
     return result;
 }
+
+HexLandmarkMap aggregateLandmarks(const std::vector<H3Point>& points)
+{
+    HexLandmarkMap result;
+
+    for (const auto& point : points)
+    {
+        if (point.brandName.empty())
+        {
+            continue;
+        }
+
+        auto& names = result[point.h3Index];
+
+        bool alreadyAdded = false;
+
+        for (const auto& name : names)
+        {
+            if (name == point.brandName)
+            {
+                alreadyAdded = true;
+                break;
+            }
+        }
+
+        if (!alreadyAdded)
+        {
+            names.push_back(point.brandName);
+        }
+    }
+
+    return result;
+}

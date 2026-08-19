@@ -328,6 +328,7 @@
         <select id="businessSelect">
             <option value="coffee_shop"></option>
             <option value="barbershop"></option>
+            <option value="restaurant"></option>
         </select>
 
         <label class="toggle-label">
@@ -367,6 +368,7 @@
             cityPlaceholder: 'City (e.g. London)',
             businessCoffee: 'Coffee Shop',
             businessBarber: 'Barbershop',
+            businessRestaurant: 'Restaurant',
             labelDemand: 'Demand',
             labelCompetitors: 'Competition',
             sourceOnline: 'OpenStreetMap (online)',
@@ -396,6 +398,8 @@
             sidebarCompetition: 'Competition structure',
             sidebarByCategory: 'By category',
             sidebarTopZones: 'Top zones',
+            downloadGeoJson: 'Download GeoJSON',
+            downloadCsv: 'Download CSV',
             sidebarChains: (n, names) => names.length > 0 ? `Chains: ${names.join(', ')}` : `Chains: ${n}`,
             sidebarIndependentOnly: 'Independent competitors only',
             popupScore: 'score',
@@ -412,6 +416,7 @@
             proNoChains: 'Only independent competitors — no major chains',
             proHighDemand: 'High potential demand',
             proGrowth: '🚧 New development nearby — growing demand',
+            proLandmarks: (names) => `Nearby: ${names.join(', ')}`,
             conHighCompetition: (n) => `High competition (${n} nearby)`,
             conChains: (n, names) => `${n} chain(s) nearby (${names.join(', ')})`,
             conOneChain: (name) => `Chain nearby: ${name}`,
@@ -424,6 +429,7 @@
             cityPlaceholder: 'Город (например, Тбилиси)',
             businessCoffee: 'Кофейня',
             businessBarber: 'Барбершоп',
+            businessRestaurant: 'Ресторан',
             labelDemand: 'Спрос',
             labelCompetitors: 'Конкуренты',
             sourceOnline: 'OpenStreetMap (онлайн)',
@@ -453,6 +459,8 @@
             sidebarCompetition: 'Структура конкуренции',
             sidebarByCategory: 'По категориям',
             sidebarTopZones: 'Топ зон',
+            downloadGeoJson: 'Скачать GeoJSON',
+            downloadCsv: 'Скачать CSV',
             sidebarChains: (n, names) => names.length > 0 ? `Сети: ${names.join(', ')}` : `Сети: ${n}`,
             sidebarIndependentOnly: 'Только частные конкуренты',
             popupScore: 'балл',
@@ -469,6 +477,7 @@
             proNoChains: 'Только частные конкуренты — нет крупных сетей',
             proHighDemand: 'Высокий потенциальный спрос',
             proGrowth: '🚧 Рядом строится новый район — растущий спрос',
+            proLandmarks: (names) => `Рядом: ${names.join(', ')}`,
             conHighCompetition: (n) => `Высокая конкуренция (${n} рядом)`,
             conChains: (n, names) => `Рядом ${n} сетевых заведений (${names.join(', ')})`,
             conOneChain: (name) => `Рядом сетевое заведение: ${name}`,
@@ -499,6 +508,7 @@
         const businessSelect = document.getElementById('businessSelect');
         businessSelect.options[0].textContent = tr.businessCoffee;
         businessSelect.options[1].textContent = tr.businessBarber;
+        businessSelect.options[2].textContent = tr.businessRestaurant;
 
         const sourceSelect = document.getElementById('sourceSelect');
         sourceSelect.options[0].textContent = tr.sourceOnline;
@@ -632,6 +642,10 @@
             pros.push(tr.proGrowth);
         }
 
+        if (p.landmark_names && p.landmark_names.length > 0) {
+            pros.push(tr.proLandmarks(p.landmark_names.slice(0, 2)));
+        }
+
         if (pros.length === 0) pros.push(tr.proNone);
         if (cons.length === 0) cons.push(tr.conNone);
 
@@ -653,11 +667,16 @@
             ? `<div style="font-size:11px;color:#9ca3af;margin-top:2px">${tr.popupChains}: ${p.chain_names.join(', ')}</div>`
             : '';
 
+        const landmarksLine = p.landmark_names && p.landmark_names.length > 0
+            ? `<div style="font-size:11px;color:#9ca3af;margin-top:2px">📍 ${p.landmark_names.slice(0, 3).join(', ')}</div>`
+            : '';
+
         return `
             <div class="popup-title">${categoryLabel(p.category)} · ${tr.popupScore} ${Number(p.score).toFixed(1)}</div>
             <div>${tr.popupCompetitorsNearby}: ${p.points_count}</div>
             ${competitorBarHtml}
             ${chainsLine}
+            ${landmarksLine}
             <div style="margin-top:4px">${tr.popupDemandSignal}: ${p.demand_count}</div>
             <div>${tr.popupInvestment}: ${Number(p.investment_score).toFixed(0)}${p.growth_count > 0 ? ' 🚧' : ''}</div>
             <div class="popup-section"><b>${tr.popupPros}</b>${prosHtml}</div>
@@ -784,9 +803,13 @@
             <h2 style="margin-top:16px">${tr.sidebarByCategory}</h2>
             ${categoryRows}
             <h2 style="margin-top:16px">${tr.sidebarTopZones}</h2>
-            ${topZonesHtml}
+                        ${topZonesHtml}
+            <div style="margin-top:16px;display:flex;gap:8px">
+                <button id="downloadGeoJsonBtn" style="flex:1;padding:8px;background:#2563eb;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer">${tr.downloadGeoJson}</button>
+                <button id="downloadCsvBtn" style="flex:1;padding:8px;background:#374151;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer">${tr.downloadCsv}</button>
+            </div>
         `;
-
+          
         sidebar.querySelectorAll('.top-zone-clickable').forEach(el => {
             el.addEventListener('click', () => {
                 const hexId = el.dataset.hexId;
@@ -804,6 +827,33 @@
 
                 layer.openPopup();
             });
+        });
+
+        document.getElementById('downloadGeoJsonBtn').addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(lastGeoJson, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'geoanalytics.geojson';
+            a.click();
+        });
+
+        document.getElementById('downloadCsvBtn').addEventListener('click', () => {
+            const rows = ['hex_id,rank,score,category,competitors,chains,independent,demand,investment_score'];
+
+            (lastGeoJson.features || []).forEach(f => {
+                const p = f.properties || {};
+                rows.push([
+                    p.hex_id, p.rank, Number(p.score).toFixed(2), p.category,
+                    p.points_count, p.chain_count, p.independent_count,
+                    p.demand_count, Number(p.investment_score).toFixed(2)
+                ].join(','));
+            });
+
+            const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'geoanalytics.csv';
+            a.click();
         });
     }
 

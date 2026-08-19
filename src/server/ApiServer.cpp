@@ -125,6 +125,22 @@ namespace
 
         auto competitorH3Points = convertToH3(competitorPoints, resolution);
         auto competitorDetails = aggregateCompetitors(competitorH3Points);
+
+        std::optional<std::vector<Point>> landmarkResult;
+
+        if (pbfSource)
+        {
+            landmarkResult = fetchPbfPoints(pbfSource->path, bbox, category->landmarkTags);
+        }
+        else
+        {
+            landmarkResult = fetchOsmPoints(bbox, category->landmarkTags);
+        }
+
+        auto landmarkPoints = landmarkResult.value_or(std::vector<Point>{});
+        auto landmarkH3Points = convertToH3(landmarkPoints, resolution);
+        auto landmarkMap = aggregateLandmarks(landmarkH3Points);
+
         auto demandH3Points = convertToH3(demandPoints, resolution);
         auto growthH3Points = convertToH3(growthPoints, resolution);
 
@@ -141,7 +157,8 @@ namespace
             competitorHexes,
             demandHexes,
             growthHexes,
-            competitorDetails
+            competitorDetails,
+            landmarkMap
         );
 
         spdlog::info("Built {} features, calculating scores", features.size());

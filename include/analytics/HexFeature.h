@@ -26,6 +26,8 @@ struct HexFeature
 
     std::vector<std::string> chainNames;
 
+    std::vector<std::string> landmarkNames;
+
     double investmentScore = 0.0;
 
     double density = 0.0;

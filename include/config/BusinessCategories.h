@@ -15,6 +15,7 @@ struct BusinessCategory
     std::string name;
     std::vector<OsmTag> competitorTags;
     std::vector<OsmTag> demandTags;
+    std::vector<OsmTag> landmarkTags;
 };
 
 std::optional<BusinessCategory> findBusinessCategory(const std::string& name);

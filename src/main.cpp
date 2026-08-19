@@ -143,12 +143,17 @@ int runCli(int argc, char* argv[])
         auto growthHexes = aggregateHexes(growthH3Points);
 
         auto competitorDetails = aggregateCompetitors(competitorH3Points);
+        auto landmarkResult = fetchOsmPoints(*bbox, category->landmarkTags);
+        auto landmarkPoints = landmarkResult.value_or(std::vector<Point>{});
+        auto landmarkH3Points = convertToH3(landmarkPoints, config.resolution);
+        auto landmarkMap = aggregateLandmarks(landmarkH3Points);
 
         features = buildOpportunityFeatures(
             competitorHexes,
             demandHexes,
             growthHexes,
-            competitorDetails
+            competitorDetails,
+            landmarkMap
         );
 
         calculateOpportunityScores(
